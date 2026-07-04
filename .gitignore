@@ -15,16 +15,16 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Terraform lock file (optional - some teams commit it, some don't)
-.terraform.lock.hcl
-
 # CLI configuration files
 .terraformrc
 terraform.rc
 
-# Sensitive variable files
+# Sensitive variable files (should be in a separate repo or git-crypt)
 *.tfvars
 *.tfvars.json
 
 # Ignore any local .tfplan files
 *.tfplan
+
+# NOTE: We intentionally do NOT ignore .terraform.lock.hcl in this repo.
+# It ensures consistent provider versions across environments.
