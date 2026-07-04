@@ -1,4 +1,4 @@
-# main.tf - Phase 1: Hand-carved VPC (literal CIDRs from ADR-001)
+# main.tf - Phase 2: Refactored to cidrsubnet() (zero-diff from Phase 1.1)
 
 terraform {
   required_version = ">= 1.5"
@@ -15,19 +15,22 @@ provider "aws" {
   region = "us-west-2"
 }
 
-# VPC
+locals {
+  vpc_cidr = "10.0.0.0/16"
+}
+
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = local.vpc_cidr
 
   tags = {
     Name = "rep2-vpc"
   }
 }
 
-# Public Subnets
+# Public Subnets (netnum 0 and 1)
 resource "aws_subnet" "public_1" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.0.0/24"
+  cidr_block              = cidrsubnet(local.vpc_cidr, 8, 0)
   availability_zone       = "us-west-2a"
   map_public_ip_on_launch = true
 
@@ -38,7 +41,7 @@ resource "aws_subnet" "public_1" {
 
 resource "aws_subnet" "public_2" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
+  cidr_block              = cidrsubnet(local.vpc_cidr, 8, 1)
   availability_zone       = "us-west-2b"
   map_public_ip_on_launch = true
 
@@ -47,10 +50,10 @@ resource "aws_subnet" "public_2" {
   }
 }
 
-# Private Subnets
+# Private Subnets (netnum 10 and 11)
 resource "aws_subnet" "private_1" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.10.0/24"
+  cidr_block        = cidrsubnet(local.vpc_cidr, 8, 10)
   availability_zone = "us-west-2a"
 
   tags = {
@@ -60,7 +63,7 @@ resource "aws_subnet" "private_1" {
 
 resource "aws_subnet" "private_2" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.11.0/24"
+  cidr_block        = cidrsubnet(local.vpc_cidr, 8, 11)
   availability_zone = "us-west-2b"
 
   tags = {
@@ -68,7 +71,7 @@ resource "aws_subnet" "private_2" {
   }
 }
 
-# Internet Gateway (Public)
+# Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
@@ -91,7 +94,6 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Public Route Table Associations
 resource "aws_route_table_association" "public_1" {
   subnet_id      = aws_subnet.public_1.id
   route_table_id = aws_route_table.public.id
@@ -102,7 +104,7 @@ resource "aws_route_table_association" "public_2" {
   route_table_id = aws_route_table.public.id
 }
 
-# Private Route Table (no internet access)
+# Private Route Table
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
@@ -111,7 +113,6 @@ resource "aws_route_table" "private" {
   }
 }
 
-# Private Route Table Associations
 resource "aws_route_table_association" "private_1" {
   subnet_id      = aws_subnet.private_1.id
   route_table_id = aws_route_table.private.id
