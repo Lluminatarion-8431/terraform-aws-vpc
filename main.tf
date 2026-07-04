@@ -12,7 +12,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-west-2" # Change to your preferred region
+  region = "us-west-2"
 }
 
 # VPC
@@ -68,7 +68,7 @@ resource "aws_subnet" "private_2" {
   }
 }
 
-# Internet Gateway
+# Internet Gateway (Public)
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
@@ -91,7 +91,7 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Route Table Associations (Public)
+# Public Route Table Associations
 resource "aws_route_table_association" "public_1" {
   subnet_id      = aws_subnet.public_1.id
   route_table_id = aws_route_table.public.id
@@ -102,9 +102,30 @@ resource "aws_route_table_association" "public_2" {
   route_table_id = aws_route_table.public.id
 }
 
+# Private Route Table (no internet access)
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "rep2-private-rt"
+  }
+}
+
+# Private Route Table Associations
+resource "aws_route_table_association" "private_1" {
+  subnet_id      = aws_subnet.private_1.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private_2" {
+  subnet_id      = aws_subnet.private_2.id
+  route_table_id = aws_route_table.private.id
+}
+
 # Outputs
 output "vpc_id" {
-  value = aws_vpc.main.id
+  value       = aws_vpc.main.id
+  description = "ID of the VPC"
 }
 
 output "public_subnet_ids" {
@@ -112,6 +133,7 @@ output "public_subnet_ids" {
     aws_subnet.public_1.id,
     aws_subnet.public_2.id
   ]
+  description = "IDs of the public subnets"
 }
 
 output "private_subnet_ids" {
@@ -119,6 +141,7 @@ output "private_subnet_ids" {
     aws_subnet.private_1.id,
     aws_subnet.private_2.id
   ]
+  description = "IDs of the private subnets"
 }
 
 output "public_subnet_cidrs" {
@@ -126,6 +149,7 @@ output "public_subnet_cidrs" {
     aws_subnet.public_1.cidr_block,
     aws_subnet.public_2.cidr_block
   ]
+  description = "CIDR blocks of the public subnets"
 }
 
 output "private_subnet_cidrs" {
@@ -133,4 +157,5 @@ output "private_subnet_cidrs" {
     aws_subnet.private_1.cidr_block,
     aws_subnet.private_2.cidr_block
   ]
+  description = "CIDR blocks of the private subnets"
 }
